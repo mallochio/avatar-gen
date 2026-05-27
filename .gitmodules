@@ -1,0 +1,3 @@
+[submodule "LongCat-Video"]
+	path = LongCat-Video
+	url = https://github.com/meituan-longcat/LongCat-Video.git

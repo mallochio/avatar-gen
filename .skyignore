@@ -1,0 +1,8 @@
+.venv/
+weights/
+audio_temp_file/
+outputs_avatar_single/
+outputs_avatar_multi/
+*.mp4
+.git/
+__pycache__/

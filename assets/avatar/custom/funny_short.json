@@ -1,0 +1,7 @@
+{
+  "prompt": "A photorealistic office worker delivers a dramatic monologue with total sincerity, as if revealing a ridiculous secret while trying very hard to stay professional.",
+  "cond_image": "assets/avatar/custom/random_person.png",
+  "cond_audio": {
+    "person1": "assets/avatar/custom/random_voice.mp3"
+  }
+}

@@ -1,0 +1,67 @@
+name: longcat-avatar-azure-westeurope-h100
+
+workdir: .
+
+resources:
+  infra: azure/westeurope
+  instance_type: Standard_NCC40ads_H100_v5
+  use_spot: false
+  disk_size: 512
+  disk_tier: best
+
+file_mounts:
+  /outputs:
+    source: ${SKYPILOT_OUTPUT_BUCKET}
+    mode: MOUNT
+
+envs:
+  HF_HOME: /tmp/huggingface
+  TORCH_HOME: /tmp/torch
+  PYTHONUNBUFFERED: "1"
+  INPUT_JSON: /tmp/longcat_input.json
+  OUTPUT_DIR: /outputs/longcat-avatar-${SKYPILOT_TASK_ID}
+  TEST_IMAGE: assets/avatar/custom/random_person.png
+  TEST_AUDIO: assets/avatar/custom/random_voice.mp3
+  TEST_PROMPT: "A photorealistic office worker delivers a dramatic monologue with total sincerity, as if revealing a ridiculous secret while trying very hard to stay professional."
+  RESOLUTION: 480p
+  NUM_SEGMENTS: "1"
+  CONTEXT_PARALLEL_SIZE: "1"
+  NPROC_PER_NODE: "1"
+  USE_INT8: "1"
+  USE_DISTILL: "1"
+  REF_IMG_INDEX: "10"
+  MASK_FRAME_RANGE: "3"
+
+setup: |
+  set -euo pipefail
+  export LONGCAT_ROOT="${PWD}/LongCat-Video"
+  export VENV="${LONGCAT_ROOT}/.venv"
+  sudo nvidia-smi -pm 1 || true
+  sudo nvidia-smi conf-compute -srs 1 || true
+  sudo apt-get update
+  sudo apt-get install -y ffmpeg git build-essential libsndfile1 libsndfile1-dev
+  wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+  sudo dpkg -i cuda-keyring_1.1-1_all.deb
+  sudo apt-get update
+  sudo apt-get install -y cuda-nvcc-12-4 cuda-cudart-dev-12-4
+  export CUDA_HOME=/usr/local/cuda-12.4
+  export PATH="${CUDA_HOME}/bin:${PATH}"
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="${HOME}/.local/bin:${PATH}"
+  export LONGCAT_FORCE_RUNTIME=1
+  bash scripts/setup_uv_env.sh
+  bash scripts/download_longcat_weights.sh
+  "${VENV}/bin/python" scripts/validate_longcat_avatar_setup.py
+
+run: |
+  set -euo pipefail
+  export LONGCAT_ROOT="${PWD}/LongCat-Video"
+  export VENV="${LONGCAT_ROOT}/.venv"
+  test -n "${SKYPILOT_OUTPUT_BUCKET}"
+  "${VENV}/bin/python" scripts/prepare_longcat_avatar_input.py \
+    --image "${TEST_IMAGE}" \
+    --audio "${TEST_AUDIO}" \
+    --prompt "${TEST_PROMPT}" \
+    --output-json "${INPUT_JSON}"
+  PATH="${VENV}/bin:${PATH}" bash scripts/run_longcat_avatar_single.sh "${INPUT_JSON}"
+  ls -lah "${OUTPUT_DIR}"
