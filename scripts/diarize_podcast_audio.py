@@ -78,10 +78,20 @@ def _mfcc_features(y: np.ndarray) -> np.ndarray:
     return np.concatenate([mfcc, delta], axis=0).T
 
 
+def _align_speech_mask(speech_mask: np.ndarray, num_frames: int) -> np.ndarray:
+    if len(speech_mask) == num_frames:
+        return speech_mask
+    if len(speech_mask) > num_frames:
+        return speech_mask[:num_frames]
+    pad = np.zeros(num_frames - len(speech_mask), dtype=bool)
+    return np.concatenate([speech_mask, pad])
+
+
 def diarize_mfcc(y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Return per-frame speaker id (0 or 1) aligned to audio hops."""
     speech_mask = _frame_energy_mask(y)
     feats = _mfcc_features(y)
+    speech_mask = _align_speech_mask(speech_mask, feats.shape[0])
     active = feats[speech_mask]
     if active.shape[0] < 4:
         half = len(y) // 2
