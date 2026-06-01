@@ -104,10 +104,12 @@ avatar-gen/
   SPEC.md
   scripts/                  ← run helpers (this repo)
   skypilot/                 ← Azure SkyPilot YAML
-  assets/avatar/custom/     ← sample inputs
+  assets/avatar/custom/     ← sample single-host inputs
+  assets/avatar/podcast/    ← dual-host example JSON
   LongCat-Video/            ← submodule (upstream LongCat)
     weights/                ← gitignored; download locally
     outputs_avatar_single/  ← gitignored; generated videos
+    outputs_avatar_multi/   ← gitignored; dual-host videos
 ```
 
 ## Troubleshooting

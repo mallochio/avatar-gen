@@ -107,6 +107,8 @@ Fetch catalog: `python -m sky.catalog.data_fetchers.fetch_azure --regions westeu
 
 - `assets/avatar/custom/random_person.png`
 - `assets/avatar/custom/random_voice.mp3`
+- `assets/avatar/podcast/example_podcast.json` — dual-host example (upstream `introduce` image/audio)
+- `scripts/run_podcast_pipeline.sh` — NotebookLM mixed audio → diarize → bbox → multi-avatar Base 50-NFE
 
 Scripts live at repo root; upstream code is in `LongCat-Video/` submodule.
 

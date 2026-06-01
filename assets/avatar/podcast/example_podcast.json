@@ -1,0 +1,14 @@
+{
+  "prompt": "Static camera, two podcast hosts sit facing each other in a professional recording studio with large condenser microphones. They take turns speaking clearly, look at each other while listening, and nod occasionally. Warm lighting, soundproofed walls, visible recording gear.",
+  "cond_image": "LongCat-Video/assets/avatar/multi/introduce.png",
+  "cond_audio": {
+    "person1": "LongCat-Video/assets/avatar/multi/introduce_woman.mp3",
+    "person2": "LongCat-Video/assets/avatar/multi/introduce_man.mp3"
+  },
+  "audio_type": "para",
+  "bbox": {
+    "person1": [100, 80, 800, 640],
+    "person2": [50, 720, 820, 1300]
+  },
+  "recommended_num_segments": 3
+}
