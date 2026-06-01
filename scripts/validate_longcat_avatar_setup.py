@@ -95,6 +95,11 @@ def load_input_json(path: Path, overlay_root: Path) -> tuple[list[str], dict[str
         resolved_audio = resolve_input_path(person1, overlay_root)
         if not resolved_audio.is_file():
             issues.append(f"cond_audio.person1 missing or not found: {resolved_audio}")
+    person2 = cond_audio.get("person2") if isinstance(cond_audio, dict) else None
+    if isinstance(person2, str):
+        resolved_audio2 = resolve_input_path(person2, overlay_root)
+        if not resolved_audio2.is_file():
+            issues.append(f"cond_audio.person2 missing or not found: {resolved_audio2}")
     return issues, payload
 
 

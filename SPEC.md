@@ -100,15 +100,17 @@ Fetch catalog: `python -m sky.catalog.data_fetchers.fetch_azure --regions westeu
 ### Azure launch
 
 - `scripts/launch_longcat_azure_ncc_manual.sh` — provision VM, sync repo, run, fetch output
-- `scripts/launch_longcat_sky.sh` — SkyPilot launch helper
-- `skypilot/longcat_avatar_azure_westeurope_h100.yaml` — SkyPilot task spec
+- `scripts/launch_longcat_sky.sh` — SkyPilot launch helper (single-host)
+- `scripts/launch_longcat_podcast_sky.sh` — SkyPilot launch helper (two-host podcast)
+- `scripts/setup_and_run_longcat_podcast_ncc.sh` — manual VM podcast pipeline
+- `skypilot/longcat_avatar_azure_westeurope_h100.yaml` — SkyPilot single-host task
+- `skypilot/longcat_podcast_azure_westeurope_h100.yaml` — SkyPilot podcast task (Base 50-NFE)
+- `skypilot/podcast_blob_inputs.example.yaml` — optional blob mount for seed + mixed audio
 
 ### Test assets
 
 - `assets/avatar/custom/random_person.png`
 - `assets/avatar/custom/random_voice.mp3`
-- `assets/avatar/podcast/example_podcast.json` — dual-host example (upstream `introduce` image/audio)
-- `scripts/run_podcast_pipeline.sh` — NotebookLM mixed audio → diarize → bbox → multi-avatar Base 50-NFE
 
 Scripts live at repo root; upstream code is in `LongCat-Video/` submodule.
 

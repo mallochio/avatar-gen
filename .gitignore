@@ -204,6 +204,8 @@ LongCat-Video/weights/
 # Generated outputs
 LongCat-Video/outputs_avatar_single/
 LongCat-Video/outputs_avatar_multi/
+assets/avatar/podcast/custom/*
+!assets/avatar/podcast/custom/.gitkeep
 outputs_avatar_single/
 outputs_avatar_multi/
 audio_temp_file/

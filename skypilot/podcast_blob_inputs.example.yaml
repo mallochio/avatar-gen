@@ -1,0 +1,20 @@
+# Optional overlay: mount NotebookLM audio + seed image from Azure Blob.
+# Usage (from repo root):
+#   sky launch -c longcat-podcast-we \
+#     skypilot/longcat_podcast_azure_westeurope_h100.yaml \
+#     --config skypilot/podcast_blob_inputs.example.yaml \
+#     --env SKYPILOT_OUTPUT_BUCKET=https://<account>.blob.core.windows.net/longcat-outputs \
+#     -y
+#
+# Upload inputs first, e.g.:
+#   az storage blob upload -f seed.png -c longcat-inputs -n podcast-run-1/seed.png
+#   az storage blob upload -f overview.mp3 -c longcat-inputs -n podcast-run-1/mixed.mp3
+
+file_mounts:
+  /inputs:
+    source: https://<storage-account>.blob.core.windows.net/longcat-inputs/podcast-run-1
+    mode: COPY
+
+envs:
+  PODCAST_SEED_IMAGE: /inputs/seed.png
+  PODCAST_MIXED_AUDIO: /inputs/mixed.mp3

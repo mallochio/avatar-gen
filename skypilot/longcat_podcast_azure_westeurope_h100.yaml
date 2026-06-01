@@ -1,0 +1,121 @@
+name: longcat-podcast-azure-westeurope-h100
+
+workdir: .
+
+resources:
+  infra: azure/westeurope
+  instance_type: Standard_NCC40ads_H100_v5
+  use_spot: false
+  disk_size: 512
+  disk_tier: best
+
+file_mounts:
+  /outputs:
+    source: ${SKYPILOT_OUTPUT_BUCKET}
+    mode: MOUNT
+
+envs:
+  HF_HOME: /tmp/huggingface
+  TORCH_HOME: /tmp/torch
+  PYTHONUNBUFFERED: "1"
+  OUTPUT_DIR: /outputs/longcat-podcast-${SKYPILOT_TASK_ID}
+  WORK_DIR: /tmp/longcat_podcast
+  OUTPUT_JSON: /tmp/longcat_podcast/podcast_input.json
+  # Override with: sky launch ... --env PODCAST_SEED_IMAGE=assets/avatar/podcast/custom/seed.png
+  PODCAST_SEED_IMAGE: ""
+  PODCAST_MIXED_AUDIO: ""
+  PODCAST_PERSON1_AUDIO: ""
+  PODCAST_PERSON2_AUDIO: ""
+  PODCAST_PROMPT: ""
+  PODCAST_AUDIO_TYPE: para
+  # Base model 50-NFE (not 8-NFE distill)
+  USE_DISTILL: "0"
+  USE_INT8: "0"
+  NUM_INFERENCE_STEPS: "50"
+  RESOLUTION: 480p
+  CONTEXT_PARALLEL_SIZE: "1"
+  NPROC_PER_NODE: "1"
+  REF_IMG_INDEX: "10"
+  MASK_FRAME_RANGE: "3"
+  NUM_SEGMENTS: ""
+
+setup: |
+  set -euo pipefail
+  export LONGCAT_ROOT="${PWD}/LongCat-Video"
+  export VENV="${LONGCAT_ROOT}/.venv"
+  sudo nvidia-smi -pm 1 || true
+  sudo nvidia-smi conf-compute -srs 1 || true
+  sudo apt-get update
+  sudo apt-get install -y ffmpeg git build-essential libsndfile1 libsndfile1-dev
+  wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+  sudo dpkg -i cuda-keyring_1.1-1_all.deb
+  sudo apt-get update
+  sudo apt-get install -y cuda-nvcc-12-4 cuda-cudart-dev-12-4
+  export CUDA_HOME=/usr/local/cuda-12.4
+  export PATH="${CUDA_HOME}/bin:${PATH}"
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="${HOME}/.local/bin:${PATH}"
+  export LONGCAT_FORCE_RUNTIME=1
+  bash scripts/setup_uv_env.sh
+  bash scripts/download_longcat_weights.sh
+  "${VENV}/bin/python" scripts/validate_longcat_avatar_setup.py \
+    --input-json assets/avatar/podcast/example_podcast.json \
+    --no-distill
+
+run: |
+  set -euo pipefail
+  export LONGCAT_ROOT="${PWD}/LongCat-Video"
+  export VENV="${LONGCAT_ROOT}/.venv"
+  export PATH="${VENV}/bin:${PATH}"
+  test -n "${SKYPILOT_OUTPUT_BUCKET}"
+
+  resolve_input() {
+    local env_path="$1"
+    local name="$2"
+    if [[ -n "${env_path}" && -f "${env_path}" ]]; then
+      echo "${env_path}"
+      return
+    fi
+    if [[ -d /inputs && -f "/inputs/${name}" ]]; then
+      echo "/inputs/${name}"
+      return
+    fi
+    echo ""
+  }
+
+  export PODCAST_SEED_IMAGE="$(resolve_input "${PODCAST_SEED_IMAGE}" "seed.png")"
+  export PODCAST_MIXED_AUDIO="$(resolve_input "${PODCAST_MIXED_AUDIO}" "mixed.mp3")"
+  export PODCAST_PERSON1_AUDIO="$(resolve_input "${PODCAST_PERSON1_AUDIO}" "person1.wav")"
+  export PODCAST_PERSON2_AUDIO="$(resolve_input "${PODCAST_PERSON2_AUDIO}" "person2.wav")"
+
+  if [[ -z "${PODCAST_SEED_IMAGE}" ]]; then
+    export PODCAST_SEED_IMAGE="LongCat-Video/assets/avatar/multi/introduce.png"
+  fi
+  if [[ -z "${PODCAST_PROMPT}" ]]; then
+    export PODCAST_PROMPT="Static camera, two podcast hosts sit in a warmly lit studio with microphones, taking turns speaking and listening naturally."
+  fi
+
+  if [[ -z "${PODCAST_MIXED_AUDIO}" && ( -z "${PODCAST_PERSON1_AUDIO}" || -z "${PODCAST_PERSON2_AUDIO}" ) ]]; then
+    PODCAST_MIXED_AUDIO="/tmp/notebooklm_mixed.wav"
+    "${VENV}/bin/python" scripts/make_mixed_podcast_audio.py \
+      --person1-audio LongCat-Video/assets/avatar/multi/introduce_woman.mp3 \
+      --person2-audio LongCat-Video/assets/avatar/multi/introduce_man.mp3 \
+      --output "${PODCAST_MIXED_AUDIO}"
+    export PODCAST_MIXED_AUDIO
+  fi
+
+  export WORK_DIR OUTPUT_JSON OUTPUT_DIR
+  export PODCAST_AUDIO_TYPE="${PODCAST_AUDIO_TYPE:-para}"
+  export USE_DISTILL USE_INT8 NUM_INFERENCE_STEPS RESOLUTION
+  export CONTEXT_PARALLEL_SIZE NPROC_PER_NODE REF_IMG_INDEX MASK_FRAME_RANGE NUM_SEGMENTS
+
+  bash scripts/run_podcast_pipeline.sh
+
+  mkdir -p "${OUTPUT_DIR}"
+  if [[ -d "${LONGCAT_ROOT}/outputs_avatar_multi" ]]; then
+    cp -a "${LONGCAT_ROOT}/outputs_avatar_multi/." "${OUTPUT_DIR}/" || true
+  fi
+  cp -f "${OUTPUT_JSON}" "${OUTPUT_DIR}/podcast_input.json" 2>/dev/null || true
+  cp -f "${WORK_DIR}/spatial.json" "${OUTPUT_DIR}/spatial.json" 2>/dev/null || true
+  cp -f "${WORK_DIR}/diarization.json" "${OUTPUT_DIR}/diarization.json" 2>/dev/null || true
+  ls -lah "${OUTPUT_DIR}"

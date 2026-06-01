@@ -29,6 +29,18 @@ OUTPUT_DIR="${OUTPUT_DIR:-${LONGCAT_ROOT}/outputs_avatar_multi}"
 RUN_INFERENCE="${RUN_INFERENCE:-1}"
 AUDIO_TYPE="${AUDIO_TYPE:-para}"
 
+# SkyPilot / VM env fallbacks (used when CLI flags are omitted)
+SEED_IMAGE="${SEED_IMAGE:-${PODCAST_SEED_IMAGE:-}}"
+MIXED_AUDIO="${MIXED_AUDIO:-${PODCAST_MIXED_AUDIO:-}}"
+PERSON1_AUDIO="${PERSON1_AUDIO:-${PODCAST_PERSON1_AUDIO:-}}"
+PERSON2_AUDIO="${PERSON2_AUDIO:-${PODCAST_PERSON2_AUDIO:-}}"
+PROMPT="${PROMPT:-${PODCAST_PROMPT:-}}"
+WORK_DIR="${WORK_DIR:-${PODCAST_WORK_DIR:-/tmp/longcat_podcast}}"
+OUTPUT_JSON="${OUTPUT_JSON:-${PODCAST_OUTPUT_JSON:-${WORK_DIR}/podcast_input.json}}"
+OUTPUT_DIR="${OUTPUT_DIR:-${PODCAST_OUTPUT_DIR:-${LONGCAT_ROOT}/outputs_avatar_multi}}"
+RUN_INFERENCE="${RUN_INFERENCE:-$([[ "${PODCAST_PREPARE_ONLY:-0}" == "1" ]] && echo 0 || echo 1)}"
+AUDIO_TYPE="${AUDIO_TYPE:-${PODCAST_AUDIO_TYPE:-para}}"
+
 usage() {
   sed -n '2,20p' "$0"
   exit 1

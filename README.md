@@ -84,15 +84,43 @@ From the control-plane VM (see SPEC):
 ```bash
 source ~/skypilot-runtime/bin/activate
 cd ~/avatar-gen
+git submodule update --init --recursive
 export SKYPILOT_OUTPUT_BUCKET=https://<account>.blob.core.windows.net/longcat-outputs
-./scripts/launch_longcat_sky.sh
 ```
 
-Monitor and tear down:
+**Single-host (default sample):**
 
 ```bash
-sky status
+./scripts/launch_longcat_sky.sh
 sky logs longcat-ncc-we
+```
+
+**Two-host podcast (NotebookLM mixed audio + seed image):**
+
+```bash
+# Option A: bundle inputs in the repo workdir (synced to the cluster)
+mkdir -p assets/avatar/podcast/custom
+cp /path/to/podcasters.png assets/avatar/podcast/custom/seed.png
+cp /path/to/notebooklm_overview.mp3 assets/avatar/podcast/custom/mixed.mp3
+
+export PODCAST_SEED_IMAGE=assets/avatar/podcast/custom/seed.png
+export PODCAST_MIXED_AUDIO=assets/avatar/podcast/custom/mixed.mp3
+export PODCAST_PROMPT="Static camera, two hosts converse in a recording studio."
+
+./scripts/launch_longcat_podcast_sky.sh
+sky logs longcat-podcast-we
+```
+
+Videos land under blob storage: `longcat-outputs/longcat-podcast-<task-id>/` (plus `podcast_input.json`, `spatial.json`).
+
+**Option B: mount inputs from Azure Blob** — see [`skypilot/podcast_blob_inputs.example.yaml`](skypilot/podcast_blob_inputs.example.yaml).
+
+Podcast SkyPilot task: [`skypilot/longcat_podcast_azure_westeurope_h100.yaml`](skypilot/longcat_podcast_azure_westeurope_h100.yaml) (Base 50-NFE, multi-clip rollout).
+
+Tear down:
+
+```bash
+sky down longcat-podcast-we -y
 sky down longcat-ncc-we -y
 ```
 
@@ -104,12 +132,10 @@ avatar-gen/
   SPEC.md
   scripts/                  ← run helpers (this repo)
   skypilot/                 ← Azure SkyPilot YAML
-  assets/avatar/custom/     ← sample single-host inputs
-  assets/avatar/podcast/    ← dual-host example JSON
+  assets/avatar/custom/     ← sample inputs
   LongCat-Video/            ← submodule (upstream LongCat)
     weights/                ← gitignored; download locally
     outputs_avatar_single/  ← gitignored; generated videos
-    outputs_avatar_multi/   ← gitignored; dual-host videos
 ```
 
 ## Troubleshooting
