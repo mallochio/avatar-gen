@@ -43,10 +43,9 @@ setup: |
   set -euo pipefail
   export LONGCAT_ROOT="${PWD}/LongCat-Video"
   export VENV="${LONGCAT_ROOT}/.venv"
-  sudo nvidia-smi -pm 1 || true
-  sudo nvidia-smi conf-compute -srs 1 || true
   sudo apt-get update
   sudo apt-get install -y ffmpeg git build-essential libsndfile1 libsndfile1-dev
+  bash scripts/setup_ncc_gpu.sh
   wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
   sudo dpkg -i cuda-keyring_1.1-1_all.deb
   sudo apt-get update

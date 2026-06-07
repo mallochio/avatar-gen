@@ -1,4 +1,4 @@
-name: longcat-avatar-azure-westeurope-h100
+name: longcat-podcast-avatar-azure-westeurope-h100
 
 workdir: .
 
@@ -18,19 +18,15 @@ envs:
   HF_HOME: /tmp/huggingface
   TORCH_HOME: /tmp/torch
   PYTHONUNBUFFERED: "1"
-  INPUT_JSON: /tmp/longcat_input.json
-  OUTPUT_DIR: /outputs/longcat-avatar-${SKYPILOT_TASK_ID}
-  TEST_IMAGE: assets/avatar/custom/random_person.png
-  TEST_AUDIO: assets/avatar/custom/random_voice.mp3
-  TEST_PROMPT: "A photorealistic office worker delivers a dramatic monologue with total sincerity, as if revealing a ridiculous secret while trying very hard to stay professional."
-  RESOLUTION: 480p
-  NUM_SEGMENTS: "1"
-  CONTEXT_PARALLEL_SIZE: "1"
-  NPROC_PER_NODE: "1"
+  PODCAST_MANIFEST: assets/podcast/podcast_jobs.json
+  PODCAST_OUTPUT_ROOT: /outputs/podcast
+  PODCAST_WORK_ROOT: /tmp/longcat-podcast
   USE_INT8: "1"
   USE_DISTILL: "1"
   REF_IMG_INDEX: "10"
   MASK_FRAME_RANGE: "3"
+  RESOLUTION: 480p
+  NUM_SEGMENTS: "1"
 
 setup: |
   set -euo pipefail
@@ -57,10 +53,8 @@ run: |
   export LONGCAT_ROOT="${PWD}/LongCat-Video"
   export VENV="${LONGCAT_ROOT}/.venv"
   test -n "${SKYPILOT_OUTPUT_BUCKET}"
-  "${VENV}/bin/python" scripts/prepare_longcat_avatar_input.py \
-    --image "${TEST_IMAGE}" \
-    --audio "${TEST_AUDIO}" \
-    --prompt "${TEST_PROMPT}" \
-    --output-json "${INPUT_JSON}"
-  PATH="${VENV}/bin:${PATH}" bash scripts/run_longcat_avatar_single.sh "${INPUT_JSON}"
-  ls -lah "${OUTPUT_DIR}"
+  PATH="${VENV}/bin:${PATH}" "${VENV}/bin/python" scripts/run_longcat_avatar_podcast.py \
+    --manifest "${PODCAST_MANIFEST}" \
+    --output-root "${PODCAST_OUTPUT_ROOT}" \
+    --work-root "${PODCAST_WORK_ROOT}"
+  ls -lah "${PODCAST_OUTPUT_ROOT}"
