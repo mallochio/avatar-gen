@@ -195,3 +195,55 @@ def test_main_ready_when_weights_exist(
         assert validate.main() == 0
     out = capsys.readouterr().out
     assert "ready_for_supported_host" in out
+
+
+def test_main_fails_without_gpu_on_linux(
+    repo_root: Path, two_host_image: Path, write_wav, tmp_path: Path, capsys
+):
+    audio = write_wav(tmp_path / "a.wav")
+    input_json = tmp_path / "in.json"
+    input_json.write_text(
+        json.dumps(
+            {
+                "prompt": "Test",
+                "cond_image": two_host_image.as_posix(),
+                "cond_audio": {"person1": audio.as_posix()},
+            }
+        ),
+        encoding="utf-8",
+    )
+    weights = tmp_path / "weights"
+    for rel in [
+        "LongCat-Video/tokenizer",
+        "LongCat-Video/text_encoder",
+        "LongCat-Video/vae",
+        "LongCat-Video-Avatar-1.5/scheduler",
+        "LongCat-Video-Avatar-1.5/vocal_separator/Kim_Vocal_2.onnx",
+        "LongCat-Video-Avatar-1.5/whisper-large-v3/config.json",
+        "LongCat-Video-Avatar-1.5/whisper-large-v3/preprocessor_config.json",
+        "LongCat-Video-Avatar-1.5/whisper-large-v3/model.safetensors",
+        "LongCat-Video-Avatar-1.5/base_model/config.json",
+        "LongCat-Video-Avatar-1.5/base_model/diffusion_pytorch_model.safetensors.index.json",
+    ]:
+        p = weights / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("{}", encoding="utf-8")
+
+    sys.argv = [
+        "validate_longcat_avatar_setup",
+        "--overlay-root",
+        repo_root.as_posix(),
+        "--repo-root",
+        (repo_root / "LongCat-Video").as_posix(),
+        "--weights-root",
+        weights.as_posix(),
+        "--input-json",
+        input_json.as_posix(),
+        "--no-int8",
+        "--no-distill",
+    ]
+    with patch.object(validate, "detect_gpus", return_value=[]):
+        with patch.object(validate.platform, "system", return_value="Linux"):
+            assert validate.main() == 1
+    out = capsys.readouterr().out
+    assert "no_gpu" in out

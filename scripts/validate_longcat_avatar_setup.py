@@ -177,14 +177,17 @@ def main() -> int:
             print(f"issue: {issue}")
         return 1
 
+    if platform.system() == "Linux" and not gpus:
+        print("status: no_gpu")
+        print(
+            "issue: Linux host has no NVIDIA GPUs visible to nvidia-smi; "
+            "run scripts/setup_ncc_gpu.sh on Azure NCC H100 VMs before inference"
+        )
+        return 1
+
     command = build_command(repo_root, input_json, args.resolution, args.num_segments, use_int8, use_distill, len(gpus))
     print("status: ready_for_supported_host")
     print(f"recommended_command: {command}")
-    if not runtime_supported:
-        print(
-            "warning: upstream LongCat avatar inference is hard-wired to Linux + NVIDIA CUDA + NCCL; "
-            "this host can validate assets and weights but cannot run generation as-is"
-        )
     return 0
 
 
