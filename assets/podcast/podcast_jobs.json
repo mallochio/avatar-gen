@@ -1,0 +1,16 @@
+{
+  "jobs": [
+    {
+      "name": "man",
+      "image": "man.jpg",
+      "audio": "LongCat_1.m4a",
+      "prompt": "A podcast-style talking head delivers the audio naturally, with subtle facial motion and steady eye contact."
+    },
+    {
+      "name": "woman",
+      "image": "woman.jpg",
+      "audio": "LongCat_1.m4a",
+      "prompt": "A podcast-style talking head delivers the audio naturally, with subtle facial motion and steady eye contact."
+    }
+  ]
+}
