@@ -1,31 +1,32 @@
-name: longcat-podcast-avatar-aws-h100-ondemand
+name: avatar
 
 workdir: .
 
 resources:
-  infra: aws
-  instance_type: p5.48xlarge
-  use_spot: false
+  infra: gcp/europe-west1
+  accelerators: H100:1
+  use_spot: true
   disk_size: 512
-
-file_mounts:
-  /outputs:
-    source: ${SKYPILOT_OUTPUT_BUCKET}
-    mode: MOUNT
+  disk_tier: best
 
 envs:
   HF_HOME: /tmp/huggingface
   TORCH_HOME: /tmp/torch
   PYTHONUNBUFFERED: "1"
-  PODCAST_MANIFEST: assets/podcast/podcast_jobs.json
-  PODCAST_OUTPUT_ROOT: /outputs/longcat-outputs/podcast
-  PODCAST_WORK_ROOT: /tmp/longcat-podcast
+  INPUT_JSON: /tmp/longcat_input.json
+  INPUT_IMAGE: inputs/portrait.png
+  INPUT_AUDIO: inputs/audio.mp3
+  PROMPT_FILE: inputs/prompt.txt
+  DEFAULT_PROMPT: "A person speaks naturally to camera in a well-lit setting."
+  OUTPUT_DIR: outputs
+  RESOLUTION: 480p
+  NUM_SEGMENTS: "1"
+  CONTEXT_PARALLEL_SIZE: "1"
+  NPROC_PER_NODE: "1"
   USE_INT8: "1"
   USE_DISTILL: "1"
   REF_IMG_INDEX: "10"
   MASK_FRAME_RANGE: "3"
-  RESOLUTION: 480p
-  NUM_SEGMENTS: "1"
 
 setup: |
   set -euo pipefail
@@ -56,9 +57,20 @@ run: |
   set -euo pipefail
   export LONGCAT_ROOT="${PWD}/LongCat-Video"
   export VENV="${LONGCAT_ROOT}/.venv"
-  test -n "${SKYPILOT_OUTPUT_BUCKET}"
-  PATH="${VENV}/bin:${PATH}" "${VENV}/bin/python" scripts/run_longcat_avatar_podcast.py \
-    --manifest "${PODCAST_MANIFEST}" \
-    --output-root "${PODCAST_OUTPUT_ROOT}" \
-    --work-root "${PODCAST_WORK_ROOT}"
-  ls -lah "${PODCAST_OUTPUT_ROOT}"
+  export PATH="${VENV}/bin:${PATH}"
+
+  if [[ -f "${PROMPT_FILE}" ]]; then
+    PROMPT="$(tr -d '\r' < "${PROMPT_FILE}" | head -c 4000)"
+  else
+    PROMPT="${DEFAULT_PROMPT}"
+  fi
+
+  mkdir -p "${OUTPUT_DIR}"
+  "${VENV}/bin/python" scripts/prepare_longcat_avatar_input.py \
+    --image "${INPUT_IMAGE}" \
+    --audio "${INPUT_AUDIO}" \
+    --prompt "${PROMPT}" \
+    --output-json "${INPUT_JSON}"
+  OUTPUT_DIR="${OUTPUT_DIR}" bash scripts/run_longcat_avatar_single.sh "${INPUT_JSON}"
+  cp -f "${OUTPUT_DIR}/ai2v_demo_1.mp4" "${OUTPUT_DIR}/avatar.mp4"
+  ls -lah "${OUTPUT_DIR}"

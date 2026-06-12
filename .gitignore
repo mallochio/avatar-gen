@@ -201,6 +201,11 @@ LongCat-Video/weights/
 **/weights/
 **/.cache/huggingface/
 
+# User inputs and generated avatar output
+inputs/*
+!inputs/.gitkeep
+outputs/
+
 # Generated outputs
 LongCat-Video/outputs_avatar_single/
 LongCat-Video/outputs_avatar_multi/
