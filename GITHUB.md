@@ -33,6 +33,7 @@ git submodule update --init --recursive
 ## SkyPilot
 
 ```bash
-bash scripts/setup_skypilot.sh
+uv sync --group cloud --prerelease allow
+export AVATAR_OUTPUT_BUCKET=gs://YOUR_AVATAR_BUCKET
 bash scripts/generate_avatar.sh
 ```

@@ -2,50 +2,76 @@
 
 Turn a **portrait image** and **audio clip** into a talking-head video using [LongCat-Video-Avatar-1.5](https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5).
 
-The default path runs on a **GCP spot H100** via SkyPilot. You place files locally, run one script, and get an MP4 back in `outputs/`.
+The default path runs on a **GCP spot H100** via SkyPilot. You place files locally, choose your own GCS output bucket, run one script, and get an MP4 back in `outputs/`.
 
 Upstream model code lives in the [`LongCat-Video/`](LongCat-Video/) git submodule.
 
 ## What you need
 
 - macOS or Linux laptop (inference runs in the cloud; you do not need a local GPU)
-- [Google Cloud](https://cloud.google.com/) project with **H100 / A3 quota** in `europe-west1`
+- Google Cloud project with **H100 / A3 quota** in `europe-west1`
 - `gcloud` CLI authenticated: `gcloud auth application-default login`
+- A GCS bucket where the VM can write the generated video
 - Git with submodules
 
 First run downloads model weights on the VM (~30–40 minutes). Later runs are faster if you keep the cluster warm (see below).
 
-## Quick start (cloud)
+## Quick Start
 
 ```bash
 git clone --recurse-submodules git@github.com:mallochio/avatar-gen.git
 cd avatar-gen
 
-# 1. Add your files
+# 1. Pick your Google Cloud project
+gcloud config set project YOUR_PROJECT_ID
+gcloud auth application-default login
+
+# 2. Create or choose your output bucket
+gcloud storage buckets create gs://YOUR_AVATAR_BUCKET --location=europe-west1
+export AVATAR_OUTPUT_BUCKET=gs://YOUR_AVATAR_BUCKET
+
+# 3. Add your input files
 cp /path/to/face.png inputs/portrait.png
 cp /path/to/voice.mp3 inputs/audio.mp3
 # optional:
 # echo "A person presents quarterly results in a modern office." > inputs/prompt.txt
 
-# 2. Generate
+# 4. Generate
 bash scripts/generate_avatar.sh
 
-# 3. Open the result
+# 5. Open the result
 open outputs/avatar.mp4    # macOS
 # xdg-open outputs/avatar.mp4   # Linux
 ```
 
-`generate_avatar.sh` installs SkyPilot on first run (`scripts/setup_skypilot.sh`), provisions a spot `a3-highgpu-*` VM in `europe-west1`, runs inference, syncs `outputs/` back to your machine, and tears the cluster down.
+`generate_avatar.sh` uses `uv run` with SkyPilot (`uv sync --group cloud` on first run), provisions a spot `a3-highgpu-*` VM in `europe-west1`, writes the result to `${AVATAR_OUTPUT_BUCKET}/avatar-gen/latest/avatar.mp4`, downloads it to `outputs/avatar.mp4`, and tears the cluster down.
 
-### Input files
+## Files You Provide
 
 | File | Required | Formats |
 |------|----------|---------|
 | `inputs/portrait.png` | yes | `.png`, `.jpg`, `.jpeg`, `.webp` |
 | `inputs/audio.mp3` | yes | `.mp3`, `.wav`, `.m4a`, `.flac`, `.ogg` |
-| `inputs/prompt.txt` | no | plain text scene description |
+| `inputs/prompt.txt` | no | plain text scene prompt |
 
-### Optional flags
+The image should show the face clearly. The audio should contain the voice you want the avatar to speak.
+
+## Output Bucket
+
+Set `AVATAR_OUTPUT_BUCKET` to a GCS bucket you control:
+
+```bash
+export AVATAR_OUTPUT_BUCKET=gs://YOUR_AVATAR_BUCKET
+```
+
+The script writes:
+
+- Cloud copy: `${AVATAR_OUTPUT_BUCKET}/avatar-gen/latest/avatar.mp4`
+- Local copy: `outputs/avatar.mp4`
+
+The account used by SkyPilot must be able to mount and write to the bucket. If you use the Compute Engine default service account, grant it Storage Object Admin on the bucket if needed.
+
+## Optional Flags
 
 ```bash
 NUM_GPUS=8 bash scripts/generate_avatar.sh   # more GPUs for long audio (2, 4, or 8)
@@ -54,7 +80,7 @@ USE_SPOT=0 bash scripts/generate_avatar.sh   # on-demand instead of spot
 
 Multi-GPU helps mainly with longer audio via context parallelism. The default `NUM_GPUS=1` is right for most clips.
 
-To reuse a warm cluster (skip re-provisioning), remove `--down` from the launch command in `scripts/generate_avatar.sh` and run `sky down avatar-gen -y` when finished.
+To reuse a warm cluster, remove `--down` from `scripts/generate_avatar.sh` and run `sky down avatar-gen -y` when finished. The default tears the VM down to avoid surprise costs.
 
 ## Local Linux GPU (optional)
 
@@ -95,6 +121,10 @@ avatar-gen/
 **Submodule empty** — `git submodule update --init --recursive`
 
 **Missing inputs** — script prints expected paths under `inputs/`
+
+**Missing bucket** — set `AVATAR_OUTPUT_BUCKET=gs://YOUR_AVATAR_BUCKET`
+
+**Bucket permission errors** — grant the SkyPilot VM service account write access to your bucket.
 
 **Quota / provisioning errors** — check H100 availability:
 

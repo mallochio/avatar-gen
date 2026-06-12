@@ -12,14 +12,14 @@ User-facing guide: [`README.md`](README.md).
 
 ## SkyPilot config
 
-Example `~/.sky/config.yaml`:
+Use the active `gcloud` project:
 
-```yaml
-gcp:
-  project_id: your-gcp-project
+```bash
+gcloud config set project YOUR_PROJECT_ID
+gcloud auth application-default login
 ```
 
-Auth: `gcloud auth application-default login`
+SkyPilot: `uv sync --group cloud --prerelease allow` then `uv run --group cloud sky ...`.
 
 ## Quota checks
 
@@ -31,9 +31,15 @@ gcloud compute regions describe europe-west1 --format=json \
 
 H100 quota may not appear as a legacy `NVIDIA_H100_*` row; request **NVIDIA H100 GPUs** or **A3** quota in Cloud Console if launch fails.
 
-## Workdir sync
+## Output storage
 
-Inputs and outputs travel with the repo workdir — no GCS bucket required. `sky launch --down` syncs `outputs/` back locally and tears down the cluster.
+`AVATAR_OUTPUT_BUCKET` must point at a writable GCS bucket:
+
+```bash
+export AVATAR_OUTPUT_BUCKET=gs://YOUR_AVATAR_BUCKET
+```
+
+SkyPilot mounts the bucket at `/outputs`, writes each run under `/outputs/avatar-gen/run-${SKYPILOT_TASK_ID}`, copies the latest result to `/outputs/avatar-gen/latest/avatar.mp4`, then `scripts/generate_avatar.sh` downloads it to `outputs/avatar.mp4`.
 
 ## Blocker history (archive)
 

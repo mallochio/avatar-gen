@@ -9,6 +9,11 @@ resources:
   disk_size: 512
   disk_tier: best
 
+file_mounts:
+  /outputs:
+    source: ${AVATAR_OUTPUT_BUCKET}
+    mode: MOUNT
+
 envs:
   HF_HOME: /tmp/huggingface
   TORCH_HOME: /tmp/torch
@@ -18,7 +23,7 @@ envs:
   INPUT_AUDIO: inputs/audio.mp3
   PROMPT_FILE: inputs/prompt.txt
   DEFAULT_PROMPT: "A person speaks naturally to camera in a well-lit setting."
-  OUTPUT_DIR: outputs
+  OUTPUT_DIR: /outputs/avatar-gen/run-${SKYPILOT_TASK_ID}
   RESOLUTION: 480p
   NUM_SEGMENTS: "1"
   CONTEXT_PARALLEL_SIZE: "1"
@@ -73,4 +78,6 @@ run: |
     --output-json "${INPUT_JSON}"
   OUTPUT_DIR="${OUTPUT_DIR}" bash scripts/run_longcat_avatar_single.sh "${INPUT_JSON}"
   cp -f "${OUTPUT_DIR}/ai2v_demo_1.mp4" "${OUTPUT_DIR}/avatar.mp4"
+  mkdir -p /outputs/avatar-gen/latest
+  cp -f "${OUTPUT_DIR}/avatar.mp4" /outputs/avatar-gen/latest/avatar.mp4
   ls -lah "${OUTPUT_DIR}"
