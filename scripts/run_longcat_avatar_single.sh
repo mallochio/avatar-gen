@@ -14,7 +14,6 @@ INPUT_JSON="$1"
 OUTPUT_DIR="${OUTPUT_DIR:-${LONGCAT_ROOT}/outputs_avatar_single}"
 MODEL_TYPE="${MODEL_TYPE:-avatar-v1.5}"
 RESOLUTION="${RESOLUTION:-480p}"
-NUM_SEGMENTS="${NUM_SEGMENTS:-1}"
 CONTEXT_PARALLEL_SIZE="${CONTEXT_PARALLEL_SIZE:-1}"
 NPROC_PER_NODE="${NPROC_PER_NODE:-1}"
 USE_INT8="${USE_INT8:-1}"
@@ -22,6 +21,21 @@ USE_DISTILL="${USE_DISTILL:-1}"
 REF_IMG_INDEX="${REF_IMG_INDEX:-10}"
 MASK_FRAME_RANGE="${MASK_FRAME_RANGE:-3}"
 CHECKPOINT_DIR="${CHECKPOINT_DIR:-${LONGCAT_ROOT}/weights/LongCat-Video-Avatar-1.5}"
+
+if [[ -z "${NUM_SEGMENTS:-}" ]] && command -v python3 >/dev/null 2>&1; then
+  PYTHON="${PYTHON:-python3}"
+  if [[ -x "${VENV}/bin/python" ]]; then
+    PYTHON="${VENV}/bin/python"
+  fi
+  NUM_SEGMENTS="$("${PYTHON}" - "${INPUT_JSON}" <<'PY'
+import json, sys
+path = sys.argv[1]
+data = json.load(open(path, encoding="utf-8"))
+print(data.get("recommended_num_segments", data.get("num_segments", 1)))
+PY
+)"
+fi
+NUM_SEGMENTS="${NUM_SEGMENTS:-1}"
 
 TORCHRUN="${TORCHRUN:-torchrun}"
 if [[ -x "${VENV}/bin/torchrun" ]]; then
@@ -53,7 +67,7 @@ if [[ "${USE_INT8}" == "1" ]]; then
   CMD+=(--use_int8)
 fi
 
-printf 'Running:'
+printf 'Running single-person avatar (segments=%s):' "${NUM_SEGMENTS}"
 printf ' %q' "${CMD[@]}"
 printf '\n'
 exec "${CMD[@]}"

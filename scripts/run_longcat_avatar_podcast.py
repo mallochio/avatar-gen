@@ -9,6 +9,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import NamedTuple
 
+from avatar_segments import audio_duration_sec, compute_num_segments
+
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 AUDIO_EXTS = {".wav", ".mp3", ".m4a", ".flac", ".ogg"}
 
@@ -145,6 +147,9 @@ def write_input_json(job: PodcastJob) -> None:
         "cond_image": job.image.as_posix(),
         "cond_audio": {"person1": job.audio.as_posix()},
     }
+    duration_sec = audio_duration_sec(job.audio)
+    if duration_sec is not None:
+        payload["recommended_num_segments"] = compute_num_segments(float(duration_sec))
     job.input_json.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 

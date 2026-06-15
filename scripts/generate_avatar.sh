@@ -73,6 +73,10 @@ ENV_ARGS=(
   --env "NPROC_PER_NODE=${NUM_GPUS}"
 )
 
+if [[ -n "${NUM_SEGMENTS:-}" ]]; then
+  ENV_ARGS+=(--env "NUM_SEGMENTS=${NUM_SEGMENTS}")
+fi
+
 SPOT_ARGS=()
 if [[ "${USE_SPOT}" == "0" ]]; then
   SPOT_ARGS+=(--no-use-spot)

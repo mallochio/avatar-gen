@@ -25,7 +25,6 @@ envs:
   DEFAULT_PROMPT: "A person speaks naturally to camera in a well-lit setting."
   OUTPUT_DIR: /outputs/avatar-gen/run-${SKYPILOT_TASK_ID}
   RESOLUTION: 480p
-  NUM_SEGMENTS: "1"
   CONTEXT_PARALLEL_SIZE: "1"
   NPROC_PER_NODE: "1"
   USE_INT8: "1"
@@ -77,7 +76,19 @@ run: |
     --prompt "${PROMPT}" \
     --output-json "${INPUT_JSON}"
   OUTPUT_DIR="${OUTPUT_DIR}" bash scripts/run_longcat_avatar_single.sh "${INPUT_JSON}"
-  cp -f "${OUTPUT_DIR}/ai2v_demo_1.mp4" "${OUTPUT_DIR}/avatar.mp4"
+  if [[ -z "${NUM_SEGMENTS:-}" ]]; then
+    NUM_SEGMENTS="$("${VENV}/bin/python" - "${INPUT_JSON}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+print(data.get("recommended_num_segments", data.get("num_segments", 1)))
+PY
+)"
+  fi
+  if [[ "${NUM_SEGMENTS}" -gt 1 && -f "${OUTPUT_DIR}/video_continue_${NUM_SEGMENTS}.mp4" ]]; then
+    cp -f "${OUTPUT_DIR}/video_continue_${NUM_SEGMENTS}.mp4" "${OUTPUT_DIR}/avatar.mp4"
+  else
+    cp -f "${OUTPUT_DIR}/ai2v_demo_1.mp4" "${OUTPUT_DIR}/avatar.mp4"
+  fi
   mkdir -p /outputs/avatar-gen/latest
   cp -f "${OUTPUT_DIR}/avatar.mp4" /outputs/avatar-gen/latest/avatar.mp4
   ls -lah "${OUTPUT_DIR}"

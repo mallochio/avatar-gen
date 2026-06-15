@@ -44,7 +44,7 @@ open outputs/avatar.mp4    # macOS
 # xdg-open outputs/avatar.mp4   # Linux
 ```
 
-`generate_avatar.sh` uses `uv run` with SkyPilot (`uv sync --group cloud` on first run), provisions a spot `a3-highgpu-*` VM in `europe-west1`, writes the result to `${AVATAR_OUTPUT_BUCKET}/avatar-gen/latest/avatar.mp4`, downloads it to `outputs/avatar.mp4`, and tears the cluster down.
+`generate_avatar.sh` uses `uv run` with SkyPilot (`uv sync --group cloud` on first run), provisions a spot `a3-highgpu-*` VM in `europe-west1`, writes the result to `${AVATAR_OUTPUT_BUCKET}/avatar-gen/latest/avatar.mp4`, downloads it to `outputs/avatar.mp4`, and tears the cluster down. Video length scales with your audio clip (about 3.7 s for the first segment, then ~3.2 s per additional segment).
 
 ## Files You Provide
 
@@ -54,7 +54,7 @@ open outputs/avatar.mp4    # macOS
 | `inputs/audio.mp3` | yes | `.mp3`, `.wav`, `.m4a`, `.flac`, `.ogg` |
 | `inputs/prompt.txt` | no | plain text scene prompt |
 
-The image should show the face clearly. The audio should contain the voice you want the avatar to speak.
+The image should show the face clearly. The audio should contain the voice you want the avatar to speak. Longer audio produces a longer video automatically.
 
 ## Output Bucket
 
@@ -76,9 +76,12 @@ The account used by SkyPilot must be able to mount and write to the bucket. If y
 ```bash
 NUM_GPUS=8 bash scripts/generate_avatar.sh   # more GPUs for long audio (2, 4, or 8)
 USE_SPOT=0 bash scripts/generate_avatar.sh   # on-demand instead of spot
+NUM_SEGMENTS=5 bash scripts/generate_avatar.sh   # override auto segment count (optional)
 ```
 
-Multi-GPU helps mainly with longer audio via context parallelism. The default `NUM_GPUS=1` is right for most clips.
+Multi-GPU helps mainly with longer audio via context parallelism. The default `NUM_GPUS=1` works for any length; more GPUs reduce runtime on long clips.
+
+Segment count is chosen automatically from audio length during prep (`recommended_num_segments` in the input JSON). Override with `NUM_SEGMENTS` as above, or locally when calling `run_longcat_avatar_single.sh`.
 
 To reuse a warm cluster, remove `--down` from `scripts/generate_avatar.sh` and run `sky down avatar-gen -y` when finished. The default tears the VM down to avoid surprise costs.
 
@@ -98,7 +101,8 @@ LongCat-Video/.venv/bin/python scripts/prepare_longcat_avatar_input.py \
 
 PATH="LongCat-Video/.venv/bin:$PATH" OUTPUT_DIR=outputs \
   bash scripts/run_longcat_avatar_single.sh /tmp/input.json
-cp outputs/ai2v_demo_1.mp4 outputs/avatar.mp4
+LATEST="$(ls -1 outputs/video_continue_*.mp4 2>/dev/null | tail -1)"
+cp -f "${LATEST:-outputs/ai2v_demo_1.mp4}" outputs/avatar.mp4
 ```
 
 ## Experimental: two-host podcast

@@ -5,6 +5,8 @@ import argparse
 import json
 from pathlib import Path
 
+from avatar_segments import audio_duration_sec, compute_num_segments
+
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 AUDIO_EXTS = {".wav", ".mp3", ".m4a", ".flac", ".ogg"}
 
@@ -43,8 +45,13 @@ def main() -> int:
         "cond_image": args.image.as_posix(),
         "cond_audio": {"person1": args.audio.as_posix()},
     }
+    duration_sec = audio_duration_sec(args.audio)
+    if duration_sec is not None:
+        payload["recommended_num_segments"] = compute_num_segments(float(duration_sec))
     output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(output_path)
+    if "recommended_num_segments" in payload:
+        print(f"recommended_num_segments={payload['recommended_num_segments']}")
     return 0
 
 

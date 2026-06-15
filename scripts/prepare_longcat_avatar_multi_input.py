@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 from pathlib import Path
+
+from avatar_segments import audio_duration_sec, compute_num_segments
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 AUDIO_EXTS = {".wav", ".mp3", ".m4a", ".flac", ".ogg"}
@@ -50,16 +51,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def compute_num_segments(duration_sec: float, fps: int = 25, num_frames: int = 93, num_cond_frames: int = 13) -> int:
-    first_clip = num_frames / fps
-    if duration_sec <= first_clip:
-        return 1
-    per_segment = (num_frames - num_cond_frames) / fps
-    remaining = duration_sec - first_clip
-    extra = math.ceil(remaining / per_segment)
-    return 1 + extra
-
-
 def main() -> int:
     args = parse_args()
     spatial: dict = {}
@@ -83,13 +74,7 @@ def main() -> int:
 
     duration_sec = spatial.get("duration_sec")
     if duration_sec is None:
-        try:
-            import librosa
-
-            y, sr = librosa.load(args.person1_audio.as_posix(), sr=None, mono=True)
-            duration_sec = len(y) / float(sr)
-        except Exception:
-            duration_sec = None
+        duration_sec = audio_duration_sec(args.person1_audio)
 
     if duration_sec is not None:
         payload["recommended_num_segments"] = compute_num_segments(float(duration_sec))

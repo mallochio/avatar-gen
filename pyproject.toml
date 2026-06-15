@@ -9,7 +9,7 @@ cloud = ["skypilot[gcp]"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "scripts"]
 addopts = "-ra"
 
 [tool.coverage.run]

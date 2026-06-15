@@ -1,23 +1,32 @@
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
 
 import pytest
 
+from avatar_segments import compute_num_segments
 from tests.conftest import load_script
 
 prepare_multi = load_script("prepare_longcat_avatar_multi_input")
 
 
 def test_compute_num_segments_short_clip():
-    assert prepare_multi.compute_num_segments(2.0) == 1
+    assert compute_num_segments(2.0) == 1
 
 
 def test_compute_num_segments_long_clip():
     # 93/25 = 3.72s first clip; each extra ~3.2s
-    assert prepare_multi.compute_num_segments(20.0) >= 5
+    assert compute_num_segments(20.0) >= 5
+
+
+def test_existing_file_rejects_bad_extension(tmp_path: Path):
+    bad = tmp_path / "face.gif"
+    bad.write_bytes(b"gif")
+    with pytest.raises(argparse.ArgumentTypeError, match="Unsupported"):
+        prepare_multi.existing_file(bad.as_posix(), prepare_multi.IMAGE_EXTS)
 
 
 def test_main_with_spatial_json(two_host_image: Path, write_wav, tmp_path: Path):
